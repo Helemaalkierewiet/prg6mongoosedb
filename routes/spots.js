@@ -21,79 +21,120 @@ router.options('/', (req, res) =>{
 // })
 
 router.get('/', async (req, res) => {
-
+    let pagination = {};
+    let spots = [];
 
     // getting TOTAL objecttt Amount like a PRRRR driveby
-    const amountGetter = await Spot.find();
-    let keyCount  = Object.keys(amountGetter).length;
-    // log in console.
-    console.log(keyCount);
+    if (req.query.page && req.query.limit) {
 
 
+        const amountGetter = await Spot.find();
+        let keyCount = Object.keys(amountGetter).length;
+        // log in console.
+        console.log(keyCount);
 
 
-    const limit = req.query.limit || 0;
-    const page = req.query.page || 1;
+        const limit = parseInt(req.query.limit) || 0;
+        const page = parseInt(req.query.page) || 1;
 
-    const skip = (page - 1) * limit;
-
-
-
-    let pages = Math.round(keyCount / limit);
-    let previousPage = req.query.page - 1;
+        const skip = (page - 1) * limit;
 
 
-    console.log(pages);
-
-    const spots = await Spot.find().limit(
-        limit
-    ).skip(
-        skip
-    );
-
-    console.log(skip);
-
-    //skip methode
-
-    //skip = limit * eerste page?
+        let pages = Math.ceil(keyCount / limit);
+        let previousPage = req.query.page - 1;
 
 
-    res.json({
-        items: spots,
-        _links:
-            {
+        console.log(pages);
+
+        const spots = await Spot.find().limit(
+            limit
+        ).skip(
+            skip
+        );
+
+        console.log(skip);
+
+
+        pagination = {
+
+            currentPage: `${page}`,
+            currentItems: `${limit}`,
+            totalPages: `${pages}`,
+            totalItems: `${keyCount}`,
+            _links: {
+                first: {
+                    "page": 1,
+                    "href": `http://145.24.223.55:8001/?page=1&limit=${req.query.limit}`
+                },
+                last: {
+                    "page": `${pages}`,
+                    "href": `http://145.24.223.55:8001/?page=${pages}&limit=${req.query.limit}`
+                },
+                previous: req.query.page > 1 ? {
+                    page: req.query.page - 1,
+                    href: `http://145.24.223.55:8001/?page=${previousPage}&limit=${req.query.limit}`
+                } : null,
+                next: req.query.page < pages ? {
+                    "page": page + 1,
+                    "href": `http://145.24.223.55:8001/?page=${page + 1}&limit=${req.query.limit}`
+                } : null
+
+
+            }
+        }
+        res.json({
+            items: spots,
+            _links: {
                 self: {
-                    href: `${process.env.APP_BASE_URL}/spots`
+                    href: process.env.SERVICE_URL
                 },
                 collection: {
-                    href: `${process.env.APP_BASE_URL}/spots`
+                    href: process.env.SERVICE_URL
                 }
             },
-        pagination:
-            {
-                "currentPage": `${req.query.page}`,
-                "currentItems": `${req.query.limit}`,
-                "totalPages": `${keyCount}`,
-                "totalItems": `${pages}`,
-                "_links": {
-                    "first": {
-                        "page": 1,
-                        "href": `http://example.com/?page=1&limit=${req.query.limit}`
+            pagination: pagination
+        });
+    } else {
+
+        spots = await Spot.find();
+        // const totalItems = spots.length;
+        const amountGetter = await Spot.find();
+        let keyCount = Object.keys(amountGetter).length;
+        res.json({
+            items: spots,
+            _links:
+                {
+                    self: {
+                        href: `${process.env.APP_BASE_URL}/spots`
                     },
-                    "last": {
-                        "page": `${pages}`,
-                        "href": `http://example.com/?page=${pages}&limit=${req.query.limit}`
-                    },
-                    "previous": null,
-                    "next": {
-                        "page": `${previousPage}`,
-                        "href": `http://example.com/?page=${previousPage}&limit=${req.query.limit}`
+                    collection: {
+                        href: `${process.env.APP_BASE_URL}/spots`
+                    }
+                },
+            pagination:
+                {
+                    "currentPage": 1,
+                    "currentItems": `${keyCount}`,
+                    "totalPages": 1,
+                    "totalItems": `${keyCount}`,
+                    "_links": {
+                        "first": {
+                            "page": 1,
+                            "href": `http://145.24.223.55:8001/spots/?page=1&limit=${keyCount}`,
+                        },
+                        "last": {
+                            "page": 1,
+                            "href": `http://145.24.223.55:8001/spots/?page=1&limit=${keyCount}`
+                        },
+                        "previous": null,
+                        "next": null
+
                     }
                 }
-            }
 
-    });
-})
+        });
+    }
+});
 
 router.post('/', async(req, res) => {
     try{
